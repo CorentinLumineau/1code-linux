@@ -135,8 +135,13 @@ async function updateRepo(tag: string) {
 
 // Build the application
 async function buildApp() {
-  step("Installing dependencies...")
+  step("Installing and updating dependencies...")
+  // Remove lockfile to force fresh resolution with latest compatible versions
+  await $`rm -f bun.lock bun.lockb`.nothrow()
   await $`bun install`
+
+  step("Updating dependencies to latest compatible versions...")
+  await $`bun update`
 
   step("Downloading Claude binary...")
   await $`bun run claude:download`
