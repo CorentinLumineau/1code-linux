@@ -18,7 +18,7 @@ import { join } from "path"
 
 // Configuration
 const CONFIG = {
-  repoUrl: "https://github.com/21st-dev/agents.git",
+  repoUrl: "https://github.com/21st-dev/1code.git",
   installDir: join(homedir(), ".local/share/1code"),
   binDir: join(homedir(), ".local/bin"),
   appPath: "/opt/1Code/21st-desktop",

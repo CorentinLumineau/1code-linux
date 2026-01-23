@@ -1,8 +1,8 @@
 # 1Code Linux Installer
 
-Unofficial Linux installer for [1Code](https://github.com/21st-dev/agents) by [21st.dev](https://21st.dev) - AI-powered code assistant.
+Unofficial Linux installer for [1Code](https://github.com/21st-dev/1code) by [21st.dev](https://21st.dev) - AI-powered code assistant.
 
-> **Note:** This is a community installer script. 1Code is developed by 21st.dev and licensed under [Apache 2.0](https://github.com/21st-dev/agents/blob/main/LICENSE).
+> **Note:** This is a community installer script. 1Code is developed by 21st.dev and licensed under [Apache 2.0](https://github.com/21st-dev/1code/blob/main/LICENSE).
 
 ## Requirements
 
