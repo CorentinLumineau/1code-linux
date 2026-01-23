@@ -17,7 +17,7 @@ Unofficial Linux installer for [1Code](https://github.com/21st-dev/agents) by [2
 curl -fsSL https://bun.sh/install | bash
 
 # Install 1Code
-bunx github:clumineau/1code-linux
+bunx github:CorentinLumineau/1code-linux
 ```
 
 ## Update
@@ -27,7 +27,7 @@ bunx github:clumineau/1code-linux
 update-1code
 
 # Or run directly
-bunx github:clumineau/1code-linux update
+bunx github:CorentinLumineau/1code-linux update
 ```
 
 ## What it does

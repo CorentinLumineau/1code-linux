@@ -1,11 +1,14 @@
 #!/usr/bin/env bun
 /**
- * 1Code Linux Installer/Updater
+ * 1Code Linux Installer/Updater (Unofficial)
+ *
+ * This is an unofficial community installer that builds 1Code from source.
+ * 1Code is developed by 21st.dev - https://github.com/21st-dev/agents
  *
  * Usage:
- *   bunx github:clumineau/1code-linux          # Install or update
- *   bunx github:clumineau/1code-linux install  # Fresh install
- *   bunx github:clumineau/1code-linux update   # Update existing
+ *   bunx github:CorentinLumineau/1code-linux          # Install or update
+ *   bunx github:CorentinLumineau/1code-linux install  # Fresh install
+ *   bunx github:CorentinLumineau/1code-linux update   # Update existing
  */
 
 import { $ } from "bun"
@@ -178,7 +181,7 @@ async function installUpdateCommand() {
   await $`mkdir -p ${CONFIG.binDir}`
 
   const updateScript = `#!/bin/bash
-bunx github:clumineau/1code-linux update
+bunx github:CorentinLumineau/1code-linux update
 `
   await Bun.write(join(CONFIG.binDir, "update-1code"), updateScript)
   await $`chmod +x ${join(CONFIG.binDir, "update-1code")}`
@@ -187,7 +190,7 @@ bunx github:clumineau/1code-linux update
 // Main install function
 async function install() {
   header("========================================")
-  header("  1Code Linux Installer")
+  header("  1Code Linux Installer (Unofficial)")
   header("========================================")
 
   await checkDependencies()
@@ -246,12 +249,12 @@ async function install() {
 // Main update function
 async function update() {
   header("========================================")
-  header("  1Code Linux Updater")
+  header("  1Code Linux Updater (Unofficial)")
   header("========================================")
 
   if (!existsSync(join(CONFIG.installDir, ".git"))) {
     error("1Code is not installed.")
-    log("Run: bunx github:clumineau/1code-linux")
+    log("Run: bunx github:CorentinLumineau/1code-linux")
     process.exit(1)
   }
 
@@ -312,7 +315,7 @@ switch (command) {
 1Code Linux Installer
 
 Usage:
-  bunx github:clumineau/1code-linux [command]
+  bunx github:CorentinLumineau/1code-linux [command]
 
 Commands:
   install   Install 1Code (default)
@@ -320,8 +323,8 @@ Commands:
   help      Show this help message
 
 Examples:
-  bunx github:clumineau/1code-linux          # Install
-  bunx github:clumineau/1code-linux update   # Update
+  bunx github:CorentinLumineau/1code-linux          # Install
+  bunx github:CorentinLumineau/1code-linux update   # Update
   update-1code                               # Update (after install)
 `)
     break

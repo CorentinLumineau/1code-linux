@@ -1,14 +1,14 @@
 {
   "name": "1code-linux",
   "version": "1.0.0",
-  "description": "Linux installer for 1Code - AI-powered code assistant",
-  "author": "clumineau",
+  "description": "Unofficial Linux installer for 1Code - builds from source",
+  "author": "CorentinLumineau",
   "license": "MIT",
   "bin": "./bin/cli.ts",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/clumineau/1code-linux"
+    "url": "https://github.com/CorentinLumineau/1code-linux"
   },
   "keywords": [
     "1code",
