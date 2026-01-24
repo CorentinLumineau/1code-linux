@@ -281,8 +281,10 @@ async function buildApp() {
   await $`bun run build`
 
   step("Packaging for Linux...")
-  // Disable source maps to avoid source-map-support bug with invalid column numbers
-  await $`NODE_OPTIONS="--no-source-maps" bun run package:linux`
+  // Delete corrupt source maps to avoid source-map-support bug with invalid column numbers
+  // Bun generates source maps with column=-1 which crashes electron-builder's dependencies
+  await $`find . -name "*.map" -type f -delete`.nothrow()
+  await $`bun run package:linux`
 }
 
 // Install the .deb package
