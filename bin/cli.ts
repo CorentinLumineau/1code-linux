@@ -281,9 +281,9 @@ async function buildApp() {
   await $`bun run build`
 
   step("Packaging for Linux...")
-  // Delete corrupt source maps to avoid source-map-support bug with invalid column numbers
-  // Bun generates source maps with column=-1 which crashes electron-builder's dependencies
-  await $`find . -name "*.map" -type f -delete`.nothrow()
+  // Patch source-map-support to handle Bun's invalid column=-1 in source maps
+  // This replaces the package with a no-op to prevent crashes during electron-builder
+  await $`echo 'module.exports={install:()=>{}}' > node_modules/source-map-support/source-map-support.js`.nothrow()
   await $`bun run package:linux`
 }
 
