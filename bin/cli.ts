@@ -289,9 +289,10 @@ async function buildApp() {
 
   step("Packaging for Linux...")
   // Patch source-map-support to handle Bun's invalid column=-1 in source maps
-  // This replaces the package with a no-op to prevent crashes during electron-builder
   await $`echo 'module.exports={install:()=>{}}' > node_modules/source-map-support/source-map-support.js`.nothrow()
-  await $`bun run package:linux`
+  // CI=true suppresses fancy Unicode output that breaks JSON parsing in electron-builder
+  // NO_COLOR=1 and TERM=dumb further ensure plain text output
+  await $`CI=true NO_COLOR=1 TERM=dumb bun run package:linux`
 }
 
 // Install the .deb package
