@@ -138,21 +138,18 @@ async function checkDependencies() {
     aptPackages.push("pkg-config")
   }
 
-  // Check Python setuptools (needed for node-gyp on Python 3.12+)
-  // Python 3.12+ removed distutils, which node-gyp needs
+  // Check Python setuptools/distutils (needed for node-gyp)
+  // Python 3.12+ removed distutils from stdlib
   if (await hasCommand("python3")) {
     const pythonVersion = await getPythonVersion()
     log(`    ${pythonVersion}`)
 
-    const hasSetuptools = await hasPythonModule("setuptools")
-    const hasDistutils = await hasPythonModule("distutils")
-
-    if (!hasSetuptools && !hasDistutils) {
-      warn("Python setuptools/distutils not found (required for native modules)")
-      aptPackages.push("python3-setuptools")
-    } else if (!hasDistutils && hasSetuptools) {
-      // Python 3.12+ - distutils removed but setuptools provides it
-      success("Python setuptools available (provides distutils)")
+    if (!(await hasPythonModule("distutils"))) {
+      warn("Python distutils not found (required for native modules)")
+      // Need pip + setuptools to get distutils on Python 3.12+
+      aptPackages.push("python3-pip", "python3-setuptools")
+    } else {
+      success("Python distutils available")
     }
   }
 
@@ -171,10 +168,20 @@ async function checkDependencies() {
       const installed = await installAptPackages(uniqueAptPackages)
       if (installed) {
         success("System packages installed")
-        // Re-check Python modules after installing setuptools
-        if (uniqueAptPackages.includes("python3-setuptools")) {
-          if (await hasPythonModule("setuptools")) {
-            success("Python setuptools now available")
+
+        // On Python 3.12+, apt's setuptools doesn't shim distutils properly
+        // Use pip to install setuptools which provides the proper shim
+        if (uniqueAptPackages.includes("python3-pip") && !(await hasPythonModule("distutils"))) {
+          log("    Installing setuptools via pip for distutils support...")
+          try {
+            await $`python3 -m pip install --user --break-system-packages setuptools`.quiet()
+            if (await hasPythonModule("distutils")) {
+              success("Python distutils now available")
+            } else {
+              warn("distutils still not available - native module builds may fail")
+            }
+          } catch {
+            warn("pip install setuptools failed")
           }
         }
       } else {
