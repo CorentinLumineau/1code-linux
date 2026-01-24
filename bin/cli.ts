@@ -69,22 +69,134 @@ async function hasCommand(cmd: string): Promise<boolean> {
   }
 }
 
+// Check if a Python module is available
+async function hasPythonModule(module: string): Promise<boolean> {
+  try {
+    await $`python3 -c "import ${module}"`.quiet()
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Get Python version
+async function getPythonVersion(): Promise<string> {
+  try {
+    const version = await $`python3 --version`.text()
+    return version.trim()
+  } catch {
+    return "not installed"
+  }
+}
+
+// Install system packages with apt
+async function installAptPackages(packages: string[]): Promise<boolean> {
+  try {
+    log(`    Installing: ${packages.join(", ")}`)
+    await $`sudo apt-get update -qq`
+    await $`sudo apt-get install -y ${packages}`
+    return true
+  } catch {
+    return false
+  }
+}
+
 // Check dependencies
 async function checkDependencies() {
-  const missing: string[] = []
+  step("Checking dependencies...")
 
+  const missing: string[] = []
+  const aptPackages: string[] = []
+
+  // Check git
   if (!(await hasCommand("git"))) {
-    missing.push("git (sudo apt install git)")
+    missing.push("git")
+    aptPackages.push("git")
   }
+
+  // Check bun
   if (!(await hasCommand("bun"))) {
     missing.push("bun (curl -fsSL https://bun.sh/install | bash)")
   }
 
-  if (missing.length > 0) {
+  // Check Python 3
+  if (!(await hasCommand("python3"))) {
+    missing.push("python3")
+    aptPackages.push("python3")
+  }
+
+  // Check build essentials for native modules (node-gyp)
+  if (!(await hasCommand("make"))) {
+    aptPackages.push("build-essential")
+  }
+  if (!(await hasCommand("g++"))) {
+    aptPackages.push("build-essential")
+  }
+
+  // Check for pkg-config (needed by some native modules)
+  if (!(await hasCommand("pkg-config"))) {
+    aptPackages.push("pkg-config")
+  }
+
+  // Check Python setuptools (needed for node-gyp on Python 3.12+)
+  // Python 3.12+ removed distutils, which node-gyp needs
+  if (await hasCommand("python3")) {
+    const pythonVersion = await getPythonVersion()
+    log(`    ${pythonVersion}`)
+
+    const hasSetuptools = await hasPythonModule("setuptools")
+    const hasDistutils = await hasPythonModule("distutils")
+
+    if (!hasSetuptools && !hasDistutils) {
+      warn("Python setuptools/distutils not found (required for native modules)")
+      aptPackages.push("python3-setuptools")
+    } else if (!hasDistutils && hasSetuptools) {
+      // Python 3.12+ - distutils removed but setuptools provides it
+      success("Python setuptools available (provides distutils)")
+    }
+  }
+
+  // Remove duplicates from apt packages
+  const uniqueAptPackages = [...new Set(aptPackages)]
+
+  // If we have apt packages to install, offer to install them
+  if (uniqueAptPackages.length > 0) {
+    log("")
+    warn("Missing system packages detected:")
+    uniqueAptPackages.forEach((pkg) => console.log(`    - ${pkg}`))
+    log("")
+
+    const response = prompt("Install missing packages with apt? [Y/n] ")
+    if (response?.toLowerCase() !== "n") {
+      const installed = await installAptPackages(uniqueAptPackages)
+      if (installed) {
+        success("System packages installed")
+        // Re-check Python modules after installing setuptools
+        if (uniqueAptPackages.includes("python3-setuptools")) {
+          if (await hasPythonModule("setuptools")) {
+            success("Python setuptools now available")
+          }
+        }
+      } else {
+        error("Failed to install some packages")
+        log("    Try manually: sudo apt install " + uniqueAptPackages.join(" "))
+      }
+    }
+  }
+
+  // Check for non-apt dependencies that are still missing
+  const stillMissing: string[] = []
+  if (!(await hasCommand("git"))) stillMissing.push("git")
+  if (!(await hasCommand("bun"))) stillMissing.push("bun (curl -fsSL https://bun.sh/install | bash)")
+  if (!(await hasCommand("python3"))) stillMissing.push("python3")
+
+  if (stillMissing.length > 0) {
     error("Missing required dependencies:")
-    missing.forEach((dep) => console.log(`  - ${dep}`))
+    stillMissing.forEach((dep) => console.log(`    - ${dep}`))
     process.exit(1)
   }
+
+  success("All dependencies satisfied")
 }
 
 // Get latest tag from remote
@@ -133,15 +245,34 @@ async function updateRepo(tag: string) {
   await $`git checkout ${tag}`
 }
 
+// Rebuild native modules for Electron
+async function rebuildNativeModules() {
+  step("Rebuilding native modules for Electron...")
+
+  try {
+    await $`npx electron-rebuild -f -w better-sqlite3,node-pty`
+    success("Native modules rebuilt successfully")
+  } catch (err) {
+    warn("electron-rebuild failed (this may be okay if modules were pre-built)")
+    log("    If 1Code fails to start, run manually:")
+    log("    cd ~/.local/share/1code && npx electron-rebuild -f -w better-sqlite3,node-pty")
+  }
+}
+
 // Build the application
 async function buildApp() {
-  step("Installing and updating dependencies...")
-  // Remove lockfile to force fresh resolution with latest compatible versions
+  step("Installing dependencies...")
+  // Remove lockfile to force fresh resolution
   await $`rm -f bun.lock bun.lockb`.nothrow()
-  await $`bun install`
+
+  // Skip postinstall electron-rebuild (we'll do it manually with better error handling)
+  await $`VERCEL=1 bun install`
 
   step("Updating dependencies to latest compatible versions...")
-  await $`bun update`
+  await $`VERCEL=1 bun update`
+
+  // Rebuild native modules manually
+  await rebuildNativeModules()
 
   step("Downloading Claude binary...")
   await $`bun run claude:download`
@@ -150,7 +281,8 @@ async function buildApp() {
   await $`bun run build`
 
   step("Packaging for Linux...")
-  await $`bun run package:linux`
+  // Disable source maps to avoid source-map-support bug with invalid column numbers
+  await $`NODE_OPTIONS="--no-source-maps" bun run package:linux`
 }
 
 // Install the .deb package
