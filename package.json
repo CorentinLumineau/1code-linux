@@ -1,6 +1,6 @@
 {
   "name": "1code-linux",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Unofficial Linux installer for 1Code - builds from source",
   "author": "CorentinLumineau",
   "license": "MIT",
