@@ -16,9 +16,14 @@ import { existsSync } from "fs"
 import { homedir } from "os"
 import { join } from "path"
 
+// Current installer version
+const INSTALLER_VERSION = "1.0.2"
+const INSTALLER_REPO = "CorentinLumineau/1code-linux"
+
 // Configuration
 const CONFIG = {
   repoUrl: "https://github.com/21st-dev/1code.git",
+  installerRepoUrl: `https://github.com/${INSTALLER_REPO}`,
   installDir: join(homedir(), ".local/share/1code"),
   binDir: join(homedir(), ".local/bin"),
   appPath: "/opt/1Code/21st-desktop",
@@ -206,6 +211,42 @@ async function checkDependencies() {
   success("All dependencies satisfied")
 }
 
+// Compare semver versions (returns: -1 if a < b, 0 if a == b, 1 if a > b)
+function compareVersions(a: string, b: string): number {
+  const partsA = a.replace(/^v/, "").split(".").map(Number)
+  const partsB = b.replace(/^v/, "").split(".").map(Number)
+
+  for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+    const numA = partsA[i] || 0
+    const numB = partsB[i] || 0
+    if (numA < numB) return -1
+    if (numA > numB) return 1
+  }
+  return 0
+}
+
+// Check for installer updates
+async function checkInstallerUpdate(): Promise<void> {
+  try {
+    const response = await fetch(
+      `https://raw.githubusercontent.com/${INSTALLER_REPO}/main/package.json`
+    )
+    if (!response.ok) return
+
+    const pkg = await response.json()
+    const remoteVersion = pkg.version as string
+
+    if (compareVersions(INSTALLER_VERSION, remoteVersion) < 0) {
+      log("")
+      warn(`Installer update available: ${INSTALLER_VERSION} → ${remoteVersion}`)
+      log(`    Run: bunx --bun github:${INSTALLER_REPO}`)
+      log("")
+    }
+  } catch {
+    // Silently ignore update check failures
+  }
+}
+
 // Get latest tag from remote
 async function getLatestTag(): Promise<string> {
   const tagsOutput = await $`git ls-remote --tags --sort=-v:refname ${CONFIG.repoUrl}`.text()
@@ -338,8 +379,10 @@ bunx github:CorentinLumineau/1code-linux update
 async function install() {
   header("========================================")
   header("  1Code Linux Installer (Unofficial)")
+  header(`        Installer v${INSTALLER_VERSION}`)
   header("========================================")
 
+  await checkInstallerUpdate()
   await checkDependencies()
 
   const isUpdate = existsSync(join(CONFIG.installDir, ".git"))
@@ -397,11 +440,14 @@ async function install() {
 async function update() {
   header("========================================")
   header("  1Code Linux Updater (Unofficial)")
+  header(`        Installer v${INSTALLER_VERSION}`)
   header("========================================")
+
+  await checkInstallerUpdate()
 
   if (!existsSync(join(CONFIG.installDir, ".git"))) {
     error("1Code is not installed.")
-    log("Run: bunx github:CorentinLumineau/1code-linux")
+    log(`Run: bunx github:${INSTALLER_REPO}`)
     process.exit(1)
   }
 

@@ -1,0 +1,13 @@
+{
+  "language": "javascript",
+  "framework": null,
+  "architecture": null,
+  "testing": null,
+  "package_manager": "npm",
+  "documentation": {
+    "framework": "none",
+    "root": null
+  },
+  "agent_type": null,
+  "detected_at": "2026-01-28T15:53:38.440Z"
+}
